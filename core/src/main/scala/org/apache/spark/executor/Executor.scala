@@ -602,6 +602,7 @@ private[spark] class Executor(
         // requires access to properties contained within (e.g. for access control).
         Executor.taskDeserializationProps.set(taskDescription.properties)
 
+        // md: 准备jar包相关的依赖
         updateDependencies(
           taskDescription.artifacts.files,
           taskDescription.artifacts.jars,
@@ -649,6 +650,7 @@ private[spark] class Executor(
           rName -> new ResourceInformation(rName, addressesAmounts.keys.toSeq.sorted.toArray)
         }
         val value = Utils.tryWithSafeFinally {
+          // md: 真正开始执行代码
           val res = task.run(
             taskAttemptId = taskId,
             attemptNumber = taskDescription.attemptNumber,

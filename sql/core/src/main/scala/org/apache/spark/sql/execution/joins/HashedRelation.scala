@@ -1051,6 +1051,7 @@ class LongHashedRelation(
   }
 
   override def valuesWithKeyIndex(): Iterator[ValueRowWithKeyIndex] = {
+    // md: 这里为啥不支持呢？
     throw SparkUnsupportedOperationException()
   }
 

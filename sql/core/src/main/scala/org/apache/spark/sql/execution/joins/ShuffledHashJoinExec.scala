@@ -102,6 +102,8 @@ case class ShuffledHashJoinExec(
 
   protected override def doExecute(): RDD[InternalRow] = {
     val numOutputRows = longMetric("numOutputRows")
+    // md: 为什么这里可以直接zipPartition？因为plan阶段为左右两边的数据做了shuffle和hashKey对齐的保障；
+    //  那具体这些保障在哪里呢？？
     streamedPlan.execute().zipPartitions(buildPlan.execute()) { (streamIter, buildIter) =>
       val hashed = buildHashedRelation(buildIter)
       joinType match {
@@ -123,6 +125,7 @@ case class ShuffledHashJoinExec(
       isFullOuterJoin: Boolean): Iterator[InternalRow] = {
     val joinKeys = streamSideKeyGenerator()
     val joinRow = new JoinedRow
+    // md: 下面其实是构建了两个函数，用于将一个普通的row，放到joinRow的左边或者右边
     val (joinRowWithStream, joinRowWithBuild) = {
       buildSide match {
         case BuildLeft => (joinRow.withRight _, joinRow.withLeft _)
@@ -175,6 +178,7 @@ case class ShuffledHashJoinExec(
       streamNullJoinRowWithBuild: => InternalRow => JoinedRow,
       buildNullRow: GenericInternalRow,
       isFullOuterJoin: Boolean): Iterator[InternalRow] = {
+    // md: 定义bitset就是为了确定build表中已经被匹配过的位置，然后反向查询出未匹配过的位置，然后实现另一个方向的outer操作
     val matchedKeys = new BitSet(hashedRelation.maxNumKeysIndex)
     longMetric("buildDataSize") += matchedKeys.capacity / 8
 
@@ -186,9 +190,11 @@ case class ShuffledHashJoinExec(
 
     // Process stream side with looking up hash relation
     val streamResultIter = streamIter.flatMap { srow =>
+      // md： 往joinRow的stream部分（可能在左边也可能在右边，要看buildSide）插入数据
       joinRowWithStream(srow)
       val keys = joinKeys(srow)
       if (keys.anyNull) {
+        // md： 往joinRow的build部分（可能在左边也可能在右边，要看buildSide）插入数据
         noMatch
       } else {
         val matched = hashedRelation.getValueWithKeyIndex(keys)

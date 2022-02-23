@@ -98,6 +98,8 @@ case object LeftAnti extends JoinType {
 case object LeftSingle extends JoinType {
   override def sql: String = "LEFT SINGLE"
 }
+// md: 这种与leftSemi和leftAnti有相似也有不同，表达式为：where exist ( subquery ) 或 where xx in ( subquery )
+//  在Spark中，一般把exist子查询改写成left semi join等；
 
 case class ExistenceJoin(exists: Attribute) extends JoinType {
   override def sql: String = {

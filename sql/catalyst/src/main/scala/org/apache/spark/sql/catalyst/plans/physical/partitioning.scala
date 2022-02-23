@@ -28,6 +28,8 @@ import org.apache.spark.sql.connector.catalog.functions.Reducer
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{DataType, IntegerType}
 
+// md: partition和distribution很容易搞混淆，前者是指数据应该怎么切片但没有指明某个partition值对应的数据，具体怎么
+//  分布在不同的物理节点上；而distribution就是为了完成这个定义；
 /**
  * Specifies how tuples that share common expressions will be distributed when a query is executed
  * in parallel on many machines.
@@ -75,6 +77,7 @@ case object AllTuples extends Distribution {
   }
 }
 
+// md: 不仅按照特定的列来分桶聚集数据，而且也确保单分桶内的数据排序
 /**
  * Represents data where tuples that share the same values for the `clustering`
  * [[Expression Expressions]] will be co-located in the same partition.
@@ -210,6 +213,7 @@ trait Partitioning {
    * A [[Partitioning]] can never satisfy a [[Distribution]] if its `numPartitions` doesn't match
    * [[Distribution.requiredNumPartitions]].
    */
+  // md: 从上面说明可以看出，Distribution是下游（上层）算子对数据分布的需求，而Partitioning是上游（下层）算子能够得到的数据分布现状
   final def satisfies(required: Distribution): Boolean = {
     required.requiredNumPartitions.forall(_ == numPartitions) && satisfies0(required)
   }
@@ -225,6 +229,7 @@ trait Partitioning {
   def createShuffleSpec(distribution: ClusteredDistribution): ShuffleSpec =
     throw SparkException.internalError(s"Unexpected partitioning: ${getClass.getSimpleName}")
 
+  // MD: 从下面的句子可以看出，Distribution是一种数据分布的需求，而Partitioning是数据分布的现状
   /**
    * The actual method that defines whether this [[Partitioning]] can satisfy the given
    * [[Distribution]], after the `numPartitions` check.
@@ -523,6 +528,7 @@ case class RangePartitioning(ordering: Seq[SortOrder], numPartitions: Int)
             // `ClusteredDistribution`.
             c.areAllClusterKeysMatched(expressions)
           } else {
+            // md: 虽然获取任意，但是又要求两边分区数是相同的
             expressions.forall(x => requiredClustering.exists(_.semanticEquals(x)))
           }
         case _ => false
@@ -554,6 +560,7 @@ case class RangePartitioning(ordering: Seq[SortOrder], numPartitions: Int)
 case class PartitioningCollection(partitionings: Seq[Partitioning])
   extends Expression with Partitioning with Unevaluable {
 
+  // md: 虽然获取任意，但是又要求两边分区数是相同的
   require(
     partitionings.map(_.numPartitions).distinct.length == 1,
     s"PartitioningCollection requires all of its partitionings have the same numPartitions.")
@@ -566,6 +573,7 @@ case class PartitioningCollection(partitionings: Seq[Partitioning])
 
   override def dataType: DataType = IntegerType
 
+  // md: 看起来这种分区形式，是任意的，从[[partitionings]]中获取到哪个就算哪个；但其实前面有相关的约束，就是左右两侧的分区数必须相同
   override val numPartitions = partitionings.map(_.numPartitions).distinct.head
 
   /**

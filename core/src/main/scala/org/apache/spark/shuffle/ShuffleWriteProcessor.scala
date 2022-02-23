@@ -53,6 +53,7 @@ private[spark] class ShuffleWriteProcessor extends Serializable with Logging {
         mapId,
         context,
         createMetricsReporter(context))
+        // md: 这里就是触发整个rdd的计算，真正获取数据
       writer.write(inputs.asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
       val mapStatus = writer.stop(success = true)
       if (mapStatus.isDefined) {

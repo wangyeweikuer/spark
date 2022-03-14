@@ -123,8 +123,6 @@ case class BroadcastNestedLoopJoinExec(
 
   /**
    * The implementation for InnerJoin.
-   *
-   * md: 比较简单，streamed按分区迭代，针对每一行数据，再迭代build表中的每一行，然后组合成一个新的行用于条件评估；
    */
   // md: 比较简单，streamed按分区迭代，针对每一行数据，再迭代build表中的每一行，然后组合成一个新的行用于条件评估；
   private def innerJoin(relation: Broadcast[Array[InternalRow]]): RDD[InternalRow] = {

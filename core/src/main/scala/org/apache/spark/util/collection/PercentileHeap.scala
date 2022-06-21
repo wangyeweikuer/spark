@@ -29,6 +29,7 @@ import java.util.PriorityQueue
  * above the percentile. During insertion the relative sizes of the heaps are adjusted to match
  * the target percentile.
  */
+//md: 这个中位数堆，确实设计很巧妙
 private[spark] class PercentileHeap(percentage: Double = 0.5) {
   assert(percentage > 0 && percentage < 1)
 

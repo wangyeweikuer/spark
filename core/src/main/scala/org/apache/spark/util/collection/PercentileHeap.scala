@@ -29,9 +29,11 @@ import java.util.PriorityQueue
  * above the percentile. During insertion the relative sizes of the heaps are adjusted to match
  * the target percentile.
  */
+//MD: 这个中位数堆，确实设计很巧妙
 private[spark] class PercentileHeap(percentage: Double = 0.5) {
   assert(percentage > 0 && percentage < 1)
 
+  //md: 对于larger部分，维护一个小顶堆，这样再rebalance时比较方便的找到可以迁移到smaller    的堆中去
   // This is a min-heap so it works out of the box.
   private[this] val largeHeap = new PriorityQueue[Double]
   // This is a max-heap. If we pass a comparator things get slower because of function call

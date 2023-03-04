@@ -224,6 +224,7 @@ object JoinReorderDP extends PredicateHelper with Logging {
     // For the lower level k, we only need to search from 0 to lev - k, because when building
     // a join from A and B, both A J B and B J A are handled.
     while (k <= lev - k) {
+      // md: 把第k层的所有plan都找出来，然后尝试增加一个新表做join
       val oneSideCandidates = existingLevels(k).values.toSeq
       for (i <- oneSideCandidates.indices) {
         val oneSidePlan = oneSideCandidates(i)
@@ -231,6 +232,7 @@ object JoinReorderDP extends PredicateHelper with Logging {
           // Both sides of a join are at the same level, no need to repeat for previous ones.
           oneSideCandidates.drop(i)
         } else {
+          // md: 看这个过程，是DPsize的实现，从枚举size开始
           existingLevels(lev - k).values.toSeq
         }
 

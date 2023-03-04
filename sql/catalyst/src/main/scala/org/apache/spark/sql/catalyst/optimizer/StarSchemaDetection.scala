@@ -124,6 +124,7 @@ object StarSchemaDetection extends PredicateHelper with SQLConfHelper {
             // Find the fact table joins.
             val allFactJoins = rest.collect { case TableAccessCardinality(plan, _)
               // md: 这里可以简单优化下，conditions其实是可以减少范围的（多次迭代之后），如果找到了某些表的话
+              // md: 因为是star-model，所以这里要求其他表都与之有join条件
               if findJoinConditions(factTable, plan, conditions).nonEmpty =>
               plan
             }
@@ -266,7 +267,7 @@ object StarSchemaDetection extends PredicateHelper with SQLConfHelper {
    * Returns the join predicates between two input plans. It only
    * considers basic comparison operators.
    */
-  // md: 思路挺有意思，就是所有不能只在一个表中预估值，但其涉及到的列（attribute）又都是属于这两个表的条件，
+  // md: 思路挺有意思，就是所有不能只在一个表中估值，但其涉及到的列（attribute）又都是属于这两个表的条件，
   //  就是真正关联着这两张表的join条件
   @inline
   private def findJoinConditions(
@@ -329,12 +330,12 @@ object StarSchemaDetection extends PredicateHelper with SQLConfHelper {
   /**
    * Reorders a star join based on heuristics. It is called from ReorderJoin if CBO is disabled.
    *   1) Finds the star join with the largest fact table.
-   *   md: 虽然fact table是处于left-deep位置，但实际执行过程中，到底是左表先执行还是右表，需要看具体物理算子实现
    *   2) Places the fact table the driving arm of the left-deep tree.
    *     This plan avoids large table access on the inner, and thus favor hash joins.
    *   3) Applies the most selective dimensions early in the plan to reduce the amount of
    *      data flow.
    */
+  // md: 虽然fact table是处于left-deep位置，但实际执行过程中，到底是左表先执行还是右表，需要看具体物理算子实现
   def reorderStarJoins(
       input: Seq[(LogicalPlan, InnerLike)],
       conditions: Seq[Expression]): Seq[(LogicalPlan, InnerLike)] = {
